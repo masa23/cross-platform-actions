@@ -55,6 +55,7 @@ const vm_file_system_synchronizer_1 = __nccwpck_require__(8544);
 const input = __importStar(__nccwpck_require__(1099));
 const shell = __importStar(__nccwpck_require__(9044));
 const timings_1 = __nccwpck_require__(7915);
+const extra_disk_1 = __nccwpck_require__(2560);
 const utility = __importStar(__nccwpck_require__(2857));
 const child_process_1 = __nccwpck_require__(2081);
 class Action {
@@ -171,7 +172,12 @@ class Action {
         });
     }
     creareVm(hypervisorDirectory, firmwareDirectory, resourcesDirectory, config) {
-        return this.operatingSystem.createVirtualMachine(hypervisorDirectory, resourcesDirectory, firmwareDirectory, this.input, Object.assign(Object.assign({}, config), { diskImage: path.join(resourcesDirectory, this.targetDiskName), resourcesDiskImage: this.resourceDisk.diskPath }));
+        return this.operatingSystem.createVirtualMachine(hypervisorDirectory, resourcesDirectory, firmwareDirectory, this.input, Object.assign(Object.assign({}, config), { diskImage: path.join(resourcesDirectory, this.targetDiskName), resourcesDiskImage: this.resourceDisk.diskPath, extraDiskImage: this.extraDiskImage }));
+    }
+    get extraDiskImage() {
+        return this.input.extraDiskSize === 0
+            ? undefined
+            : path.join(this.tempPath, 'extra-disk.raw');
     }
     unarchive(type, archivePath) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -301,6 +307,11 @@ class InitialRunPreparer {
     prepareDisk(diskImagePath, resourcesDirectory) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.action.operatingSystem.prepareDisk(diskImagePath, this.action['targetDiskName'], resourcesDirectory);
+            const extraDisk = this.action.extraDiskImage;
+            if (extraDisk !== undefined) {
+                core.info(`Creating sparse disk: ${this.action.input.extraDiskSize} bytes`);
+                (0, extra_disk_1.createSparseDisk)(extraDisk, this.action.input.extraDiskSize);
+            }
         });
     }
 }
@@ -762,6 +773,7 @@ const os = __importStar(__nccwpck_require__(6713));
 const host_1 = __nccwpck_require__(8215);
 const sync_direction_1 = __nccwpck_require__(3377);
 const crypto_1 = __nccwpck_require__(6113);
+const extra_disk_1 = __nccwpck_require__(2560);
 class Input {
     constructor(host = (0, host_1.host)()) {
         this.host = host;
@@ -825,6 +837,18 @@ class Input {
         if (memory === undefined || memory === '')
             return (this.memory_ = this.host.defaultMemory);
         return (this.memory_ = memory);
+    }
+    get extraDiskSize() {
+        if (this.extraDiskSize_ !== undefined)
+            return this.extraDiskSize_;
+        const value = core.getInput('extra_disk_size');
+        if (value === '')
+            return (this.extraDiskSize_ = 0);
+        const size = (0, extra_disk_1.parseDiskSize)(value);
+        if (this.architecture === architecture.Kind.vax) {
+            throw Error('extra_disk_size is not supported on VAX (SIMH)');
+        }
+        return (this.extraDiskSize_ = size);
     }
     get cpuCount() {
         if (this.cpuCount_ !== undefined)
@@ -901,6 +925,9 @@ class Input {
         const hash = (0, crypto_1.createHash)('sha256');
         for (const component of components)
             hash.update(component.toString());
+        if (this.extraDiskSize !== 0) {
+            hash.update(`:extra_disk_size=${this.extraDiskSize}`);
+        }
         return hash.digest('hex');
     }
 }
@@ -1556,6 +1583,63 @@ class Deadline {
 }
 exports.Deadline = Deadline;
 //# sourceMappingURL=deadline.js.map
+
+/***/ }),
+
+/***/ 2560:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.createSparseDisk = exports.parseDiskSize = void 0;
+const fs = __importStar(__nccwpck_require__(7147));
+function parseDiskSize(value) {
+    var _a;
+    const match = /^([0-9]+)([KMGT]?)$/i.exec(value);
+    const powers = { K: 1, M: 2, G: 3, T: 4 };
+    const size = match
+        ? Number(match[1]) * Math.pow(1024, ((_a = powers[match[2].toUpperCase()]) !== null && _a !== void 0 ? _a : 0))
+        : NaN;
+    if (!Number.isSafeInteger(size) || size <= 0 || size % 512 !== 0) {
+        throw Error(`Invalid extra_disk_size: ${value}. Use a positive whole number of ` +
+            'bytes (a multiple of 512), optionally followed by K, M, G or T, ' +
+            'for example 100G.');
+    }
+    return size;
+}
+exports.parseDiskSize = parseDiskSize;
+function createSparseDisk(file, size) {
+    // Exclusive creation prevents a repeated invocation from erasing data.
+    const descriptor = fs.openSync(file, 'wx', 0o600);
+    try {
+        fs.ftruncateSync(descriptor, size);
+    }
+    finally {
+        fs.closeSync(descriptor);
+    }
+}
+exports.createSparseDisk = createSparseDisk;
+//# sourceMappingURL=extra_disk.js.map
 
 /***/ }),
 
@@ -2404,6 +2488,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.QemuVmRiscv64 = exports.QemuVm = void 0;
 const qemu_vm_1 = __nccwpck_require__(1106);
 class QemuVm extends qemu_vm_1.Vm {
+    get extraDiskDevice() {
+        return 'virtio-blk-pci';
+    }
     get hardDriverFlags() {
         // prettier-ignore
         return [
@@ -2697,6 +2784,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Vm = void 0;
 const qemu_vm_1 = __nccwpck_require__(1106);
 class Vm extends qemu_vm_1.Vm {
+    get extraDiskDevice() {
+        return 'virtio-blk-pci';
+    }
     get hardDriverFlags() {
         // prettier-ignore
         return [
@@ -2902,6 +2992,9 @@ exports.Vm = Vm;
 // Selected by `variant: microvm` rather than by what happens to be on disk, so
 // it changes the guest's hardware only for a job that asked for it.
 class MicrovmVm extends Vm {
+    get extraDiskDevice() {
+        return 'virtio-blk-device';
+    }
     // Both files are looked for rather than derived from versions: an image built
     // before NetBSD had a MICROVM kernel configuration, or for an architecture
     // that doesn't, carries no kernel, and a hypervisor archive built before this
@@ -3250,6 +3343,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Vm = void 0;
 const qemu_vm_1 = __nccwpck_require__(1106);
 class Vm extends qemu_vm_1.Vm {
+    get extraDiskDevice() {
+        return 'virtio-blk';
+    }
     get hardDriverFlags() {
         // prettier-ignore
         return [
@@ -3574,6 +3670,7 @@ class Vm extends vm.Vm {
             '-boot', 'strict=off',
             ...this.firmwareFlags,
             ...this.hardDriverFlags,
+            ...this.extraDiskFlags,
             ...this.extraFlags
         ];
     }
@@ -3591,6 +3688,21 @@ class Vm extends vm.Vm {
     // default.
     get extraFlags() {
         return [];
+    }
+    get extraDiskDevice() {
+        return 'scsi-hd';
+    }
+    get extraDiskFlags() {
+        const disk = this.configuration.extraDiskImage;
+        if (disk === undefined)
+            return [];
+        // QEMU escapes commas in option values by doubling them.
+        const file = disk.toString().replace(/,/g, ',,');
+        // prettier-ignore
+        return [
+            '-device', `${this.extraDiskDevice},drive=drive2`,
+            '-drive', `if=none,file=${file},id=drive2,cache=unsafe,discard=ignore,format=raw`
+        ];
     }
     get defaultHardDriveFlags() {
         // prettier-ignore

@@ -21,6 +21,7 @@ export interface VmConfiguration extends ExternalVmConfiguration {
   cpuCount: number
   diskImage: fs.PathLike
   resourcesDiskImage: fs.PathLike
+  extraDiskImage?: fs.PathLike
 }
 
 export abstract class OperatingSystem {

@@ -476,6 +476,46 @@ jobs:
             exit 1
           }
 
+  test-extra-disk:
+    timeout-minutes: 10
+    name: Test extra sparse disk on FreeBSD ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['13.0', '15.0']
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start VM with a sparse disk
+        uses: ./
+        with:
+          operating_system: freebsd
+          version: ${{ matrix.version }}
+          extra_disk_size: 100G
+
+      - name: Verify capacity and write a partition table
+        shell: cpa.sh {0}
+        run: |
+          set -eu
+          test "$(diskinfo /dev/vtbd2 | awk '{print $3}')" = 107374182400
+          sudo gpart create -s gpt vtbd2
+          sudo gpart add -t freebsd-ufs -s 16M vtbd2
+
+      - name: Reuse VM with the same disk
+        uses: ./
+        with:
+          operating_system: freebsd
+          version: ${{ matrix.version }}
+          extra_disk_size: 100G
+
+      - name: Verify partition table survived reuse
+        shell: cpa.sh {0}
+        run: gpart show vtbd2 | grep freebsd-ufs
+
   test-no-env:
     timeout-minutes: 5
     name: Test without environment variables

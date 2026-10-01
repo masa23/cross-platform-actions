@@ -228,6 +228,7 @@ This section lists the available inputs for the action.
 | `environment_variables` | ❌       | `""`              | string  | A list of environment variables to forward to the virtual machine. The list should be separated with spaces. The `CI` and any environment variables starting with `GITHUB_` are forwarded automatically.                                                     |
 | `memory`                | ❌       | `6G`              | string  | The amount of memory for the virtual machine.                                                                                                                                                                                                                |
 | `cpu_count`             | ❌       | `2`               | integer | The number of CPU cores for the virtual machine.                                                                                                                                                                                                             |
+| `extra_disk_size`       | ❌       | `""`              | string  | Size of one additional empty sparse disk, for example `100G`. See [Additional disk](#additional-disk-extra_disk_size). QEMU only. |
 | `variant`               | ❌       | `default`         | string  | Which variant of the operating system to run. See [Variants](#variants-variant). Valid values are `default` and, where the platform has it, `microvm`.                                                                                                       |
 | `image_url`             | ❌       | ❌                | string  | URL a custom VM image that should be used in place of the default ones.                                                                                                                                                                                      |
 | `sync_files`            | ❌       | `true`            | string  | Specifies if the local files should be synchronized to the virtual machine and in which direction. Valid values are `true`, `false`, `runner-to-vm` and `vm-to-runner`. `true` synchronizes files in both directions. `false` disables file synchronization. |
@@ -242,6 +243,46 @@ floating point number, drop the fraction part (because `13` and `13.0` are the
 same) and the GitHub action will only see `13` instead of `13.0`. The solution
 is to explicitly state that a string is required by using quotes: `version:
 '13.0'`.
+
+#### Additional disk (`extra_disk_size`)
+
+Specify `extra_disk_size` to attach one empty raw disk when the VM starts.
+Use a positive integer with a binary `K`, `M`, `G` or `T` suffix (case
+insensitive), or a byte count divisible by 512. For example, `100G` means
+100 GiB. Leaving the input empty adds no disk. Multiple disks, fractional
+sizes and suffixes such as `GB` or `GiB` are not supported.
+
+```yaml
+- uses: your-org/action@your-ref # A revision containing this feature
+  with:
+    operating_system: freebsd
+    version: '13.0'
+    extra_disk_size: 100G
+
+- name: Inspect the additional disk
+  shell: cpa.sh {0}
+  run: |
+    sysctl kern.disks
+    diskinfo /dev/vtbd2
+    gpart show
+```
+
+On FreeBSD the additional virtio block disk normally appears as `/dev/vtbd2`,
+after the OS and resources disks. Device names depend on the guest; inspect
+the disks before partitioning or formatting. The action does not partition,
+format or mount the additional disk.
+
+The host file is sparse: creating it allocates almost no data blocks, but
+guest writes consume runner disk space. The requested size does not reserve
+that much host storage. The disk is temporary job data, outside the workspace
+file synchronization, and remains attached across subsequent steps and guest
+reboots. If invoking the action again to reuse a running VM, specify the same
+size; changing or removing it is rejected by the input consistency check.
+
+This input supports QEMU guests, including the NetBSD `microvm` variant. It
+is not supported on VAX (SIMH). When building a fork, run `npm ci`,
+`npm run build`, `npm test` and `npm run package`, and commit the regenerated
+`dist/` files along with the source.
 
 #### Variants (`variant`)
 

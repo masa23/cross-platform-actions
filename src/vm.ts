@@ -25,6 +25,7 @@ export interface Configuration {
   cpu: string
   machineType: string
   resourcesDiskImage: fs.PathLike
+  extraDiskImage?: fs.PathLike
   firmware?: fs.PathLike
   // Where the hypervisor archive's firmware for QEMU's `microvm` machine type
   // would be, whether or not that archive carried one.
