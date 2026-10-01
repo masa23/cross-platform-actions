@@ -48,6 +48,10 @@ export class Vm extends QemuVm {
 // Selected by `variant: microvm` rather than by what happens to be on disk, so
 // it changes the guest's hardware only for a job that asked for it.
 export class MicrovmVm extends Vm {
+  protected override get extraDiskDevice(): string {
+    return 'virtio-blk-device'
+  }
+
   // Both files are looked for rather than derived from versions: an image built
   // before NetBSD had a MICROVM kernel configuration, or for an architecture
   // that doesn't, carries no kernel, and a hypervisor archive built before this

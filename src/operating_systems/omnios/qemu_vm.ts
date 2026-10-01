@@ -1,6 +1,10 @@
 import {Vm as QemuVm} from '../../qemu_vm'
 
 export class Vm extends QemuVm {
+  protected override get extraDiskDevice(): string {
+    return 'virtio-blk'
+  }
+
   protected get hardDriverFlags(): string[] {
     // prettier-ignore
     return [

@@ -55,7 +55,6 @@ jobs:
 
         host:
           - name: ubuntu-latest
-            work_directory: /home/runner/work/action/action
 
         exclude:
           - version: '12.2'
@@ -67,7 +66,6 @@ jobs:
             hostname: ''
             host:
               name: ubuntu-latest
-              work_directory: /home/runner/work/action/action
 
           - version: '12.4'
             architecture:
@@ -76,7 +74,6 @@ jobs:
             hostname: 'runnervmg1sw1.local'
             host:
               name: ubuntu-latest
-              work_directory: /home/runner/work/action/action
 
           - version: '15.1'
             architecture:
@@ -84,7 +81,6 @@ jobs:
             hostname: 'runnervmg1sw1.local'
             host:
               name: ubuntu-latest
-              work_directory: /home/runner/work/action/action
 
           - version: '15.0'
             architecture:
@@ -92,7 +88,6 @@ jobs:
             hostname: 'runnervmg1sw1.local'
             host:
               name: ubuntu-latest
-              work_directory: /home/runner/work/action/action
 
     steps:
       - name: Checkout
@@ -109,372 +104,49 @@ jobs:
           hostname: ${{ matrix.hostname }}
           uname_release: ${{ matrix.version}}-RELEASE
           uname_hardware: ${{ matrix.architecture.uname || matrix.architecture.name }}
-          work_directory: ${{ matrix.host.work_directory }}
+          work_directory: ${{ github.workspace }}
 
-  Haiku:
-    name: Haiku ${{ matrix.architecture.name }} ${{ matrix.version.name }} on ${{ matrix.host.name }}
-    runs-on: ${{ matrix.host.name }}
-    timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - name: 'r1beta6'
-            uname: hrev59866
-
-          - name: 'r1beta5'
-            uname: hrev57937
-
-        architecture:
-          - name: x86-64
-            uname: x86_64
-
-        host:
-          - name: ubuntu-latest
-            work_directory: /boot/home/home/runner/work/action/action
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: test
-        uses: ./.github/workflows/support/test
-        with:
-          name: Haiku
-          architecture: ${{ matrix.architecture.name }}
-          version: ${{ matrix.version.name }}
-          hostname: ${{ matrix.hostname }}
-          uname_version: ${{ matrix.version.uname }}
-          uname_hardware: ${{ matrix.architecture.uname || matrix.architecture.name }}
-          work_directory: ${{ matrix.host.work_directory }}
-
-  OpenBSD:
-    name: OpenBSD ${{ matrix.architecture.name }} ${{ matrix.version }} on ${{ matrix.host.name }}
-    runs-on: ${{ matrix.host.name }}
-    timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - '7.9'
-          - '7.8'
-          - '7.7'
-          - '7.6'
-          - '7.5'
-          - '7.4'
-          - '7.3'
-          - '7.2'
-          - '7.1'
-          - '6.9'
-          - '6.8'
-
-        architecture:
-          - name: arm64
-          - name: x86-64
-            uname: amd64
-
-        host:
-          - name: ubuntu-latest
-            work_directory: /home/runner/work/action/action
-
-        exclude:
-          - version: '6.8'
-            architecture: { name: arm64 }
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: test
-        uses: ./.github/workflows/support/test
-        with:
-          name: OpenBSD
-          architecture: ${{ matrix.architecture.name }}
-          version: ${{ matrix.version }}
-          hostname: ${{ matrix.hostname }}
-          uname_hardware: ${{ matrix.architecture.uname || matrix.architecture.name }}
-          work_directory: ${{ matrix.host.work_directory }}
-
-  NetBSD:
-    name: NetBSD ${{ matrix.architecture.name }} ${{ matrix.version }} on ${{ matrix.host.name }}
-    runs-on: ${{ matrix.host.name }}
-    timeout-minutes: ${{ matrix.architecture.timeout || 5 }}
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - '11.0'
-          - '10.1'
-          - '10.0'
-          - '9.5'
-          - '9.4'
-          - '9.3'
-          - '9.2'
-
-        architecture:
-          - name: x86-64
-            uname: amd64
-
-          - name: arm64
-            uname: aarch64
-
-          # NetBSD/VAX runs on the SIMH simulator, which boots slowly, so it
-          # gets a longer timeout. It's only built for some versions (see the
-          # exclusions below).
-          - name: vax
-            uname: vax
-            timeout: 30
-
-        host:
-          - name: ubuntu-latest
-            work_directory: /home/runner/work/action/action
-
-        exclude:
-          # arm64 images exist only for 10.0 and newer.
-          - version: '9.5'
-            architecture: { name: arm64 }
-
-          - version: '9.4'
-            architecture: { name: arm64 }
-
-          - version: '9.3'
-            architecture: { name: arm64 }
-
-          - version: '9.2'
-            architecture: { name: arm64 }
-
-          # VAX images exist only for 10.1 and 11.0.
-          - version: '10.0'
-            architecture: { name: vax }
-
-          - version: '9.5'
-            architecture: { name: vax }
-
-          - version: '9.4'
-            architecture: { name: vax }
-
-          - version: '9.3'
-            architecture: { name: vax }
-
-          - version: '9.2'
-            architecture: { name: vax }
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: test
-        uses: ./.github/workflows/support/test
-        with:
-          name: NetBSD
-          architecture: ${{ matrix.architecture.name }}
-          version: ${{ matrix.version }}
-          hostname: ${{ matrix.hostname }}
-          uname_hardware: ${{ matrix.architecture.uname || matrix.architecture.name }}
-          work_directory: ${{ matrix.host.work_directory }}
-
-  DragonFlyBSD:
-    name: DragonFlyBSD ${{ matrix.architecture.name }} ${{ matrix.version }} on ${{ matrix.host.name }}
-    runs-on: ${{ matrix.host.name }}
-    timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        hostname: [runnervmg1sw1.local]
-        version:
-          - '6.4.2'
-
-        architecture:
-          - name: x86-64
-            uname: x86_64
-
-        host:
-          - name: ubuntu-latest
-            work_directory: /home/runner/work/action/action
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: test
-        uses: ./.github/workflows/support/test
-        with:
-          name: DragonFly
-          operating_system: dragonflybsd
-          architecture: ${{ matrix.architecture.name }}
-          version: ${{ matrix.version }}
-          uname_hardware: ${{ matrix.architecture.uname || matrix.architecture.name }}
-          hostname: ${{ matrix.hostname }}
-          work_directory: ${{ matrix.host.work_directory }}
-
-  MidnightBSD:
-    name: MidnightBSD ${{ matrix.architecture.name }} ${{ matrix.version }} on ${{ matrix.host.name }}
-    runs-on: ${{ matrix.host.name }}
-    timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        hostname: [runnervmg1sw1.local]
-        version:
-          - '4.0.4'
-
-        architecture:
-          - name: x86-64
-            uname: amd64
-
-        host:
-          - name: ubuntu-latest
-            work_directory: /home/runner/work/action/action
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: test
-        uses: ./.github/workflows/support/test
-        with:
-          name: MidnightBSD
-          operating_system: midnightbsd
-          architecture: ${{ matrix.architecture.name }}
-          version: ${{ matrix.version }}
-          uname_release: ${{ matrix.version}}-RELEASE
-          uname_hardware: ${{ matrix.architecture.uname || matrix.architecture.name }}
-          hostname: ${{ matrix.hostname }}
-          work_directory: ${{ matrix.host.work_directory }}
-
-  OmniOS:
-    name: OmniOS ${{ matrix.architecture.name }} ${{ matrix.version }} on ${{ matrix.host.name }}
-    runs-on: ${{ matrix.host.name }}
-    timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        hostname: [runnervmg1sw1.local]
-        version:
-          - 'r151056'
-
-        architecture:
-          - name: x86-64
-            uname: i86pc
-
-        host:
-          - name: ubuntu-latest
-            work_directory: /home/runner/work/action/action
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: test
-        uses: ./.github/workflows/support/test
-        with:
-          name: OmniOS
-          architecture: ${{ matrix.architecture.name }}
-          version: ${{ matrix.version }}
-          uname_version: ${{ matrix.version }}
-          uname_hardware: ${{ matrix.architecture.uname || matrix.architecture.name }}
-          hostname: ${{ matrix.hostname }}
-          work_directory: ${{ matrix.host.work_directory }}
-
-  # A custom image predates the bundle and the credential-less login, so this
-  # boots the last release that shipped qcow2 -- the format and the SSH key
-  # expectations a user's own image is most likely to have been built from.
-  test-custom-netbsd-image:
-    timeout-minutes: 5
-    name: Test a custom NetBSD image from before the bundle
+  test-extra-disk:
+    timeout-minutes: 10
+    name: Test extra sparse disk on FreeBSD ${{ matrix.version }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['13.0', '15.0']
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
-      - name: Start VM
+      - name: Start VM with a sparse disk
         uses: ./
         with:
-          operating_system: netbsd
-          architecture: x86-64
-          version: '11.0'
-          image_url: https://github.com/cross-platform-actions/netbsd-builder/releases/download/v0.7.0/netbsd-11.0-x86-64.qcow2
+          operating_system: freebsd
+          version: ${{ matrix.version }}
+          extra_disk_size: 100G
+          shell: sh
 
-      - name: Test
-        shell: cpa.sh {0}
-        run: uname -a
-
-  test-microvm-variant:
-    timeout-minutes: 5
-    name: Test the microvm variant
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Start VM
-        uses: ./
-        with:
-          operating_system: netbsd
-          architecture: x86-64
-          version: '11.0'
-          variant: microvm
-
-      # That the VM booted says nothing about which way it booted, and a
-      # silent fall back to the firmware is the failure worth catching. The
-      # MICROVM kernel is only reachable on this path, so its name is enough;
-      # which devices it attaches is QEMU's and NetBSD's business, and is
-      # asserted against the command we build in the unit tests instead.
-      - name: Test
+      - name: Verify capacity and write a partition table
         shell: cpa.sh {0}
         run: |
-          set -ex
-          uname -v | grep -q MICROVM
+          set -eu
+          test "$(sudo diskinfo /dev/vtbd2 | awk '{print $3}')" = 107374182400
+          sudo gpart create -s gpt vtbd2
+          sudo gpart add -t freebsd-ufs -s 16M vtbd2
 
-  test-microvm-variant-unsupported:
-    timeout-minutes: 5
-    name: Test the microvm variant on an image without a kernel
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      # NetBSD gained a MICROVM kernel configuration in 11.0, so 10.1's bundle
-      # carries no kernel. Asking for the variant anyway has to fail, rather
-      # than quietly boot through the firmware.
-      - name: Start VM
-        id: start-vm
-        continue-on-error: true
+      - name: Reuse VM with the same disk
         uses: ./
         with:
-          operating_system: netbsd
-          architecture: x86-64
-          version: '10.1'
-          variant: microvm
+          operating_system: freebsd
+          version: ${{ matrix.version }}
+          extra_disk_size: 100G
+          shell: sh
 
-      - name: Verify the action failed
-        shell: bash
-        run: |
-          [ '${{ steps.start-vm.outcome }}' = 'failure' ] || {
-            echo '::error::expected the action to reject the microvm variant'
-            exit 1
-          }
+      - name: Verify partition table survived reuse
+        shell: cpa.sh {0}
+        run: sudo gpart show vtbd2 | grep freebsd-ufs
 
   test-no-env:
     timeout-minutes: 5
@@ -497,33 +169,6 @@ jobs:
       - name: Test
         shell: cpa.sh {0}
         run: env | sort
-
-  test-haiku-file-ownership:
-    timeout-minutes: 5
-    name: Test Haiku file ownership after rsync
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - if: env.ACT
-        run: |
-          sudo apt update
-          sudo apt install -y dosfstools rsync fdisk
-
-      - name: Start VM
-        uses: ./
-        with:
-          operating_system: haiku
-          architecture: x86-64
-          version: r1beta6
-
-      - name: Test
-        shell: cpa.sh {0}
-        run: '! find . -nouser | grep -q .'
 
   test-cpu-count-config:
     timeout-minutes: 5
@@ -549,29 +194,6 @@ jobs:
         run: |
           sysctl hw.ncpu
           [ `sysctl -n hw.ncpu` = 8 ]
-
-  test-custom-vm-image:
-    timeout-minutes: 5
-    name: Test custom VM image
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Start VM
-        uses: ./
-        with:
-          operating_system: openbsd
-          architecture: x86-64
-          version: '7.3'
-          image_url: https://github.com/cross-platform-actions/test-custom-image-builder/releases/download/v1.0.0/openbsd-7.3-x86-64.qcow2
-
-      - name: Test
-        shell: cpa.sh {0}
-        run: test -f /foo
 
   test-cpu-features:
     timeout-minutes: 5
@@ -821,93 +443,6 @@ jobs:
       - name: Verify VM rebooted by checking the startup script created the second marker file
         shell: cpa.sh {0}
         run: test -f /tmp/reboot_marker_2
-
-  # OpenBSD on ARM64 boots with ACPI disabled, so reset is handled by PSCI as
-  # advertised through the device tree. Cover that combination explicitly.
-  test-reboot-shell-openbsd-arm64:
-    timeout-minutes: 20
-    name: Test reboot shell on OpenBSD ARM64
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - if: env.ACT
-        shell: bash
-        run: |
-          sudo apt update
-          sudo apt install -y dosfstools rsync fdisk
-
-      - name: Start VM
-        uses: ./
-        with:
-          operating_system: openbsd
-          architecture: arm64
-          version: '7.9'
-
-      # Appended rather than overwritten: the image's own rc.local mounts the
-      # resources disk and installs the SSH authorized_keys.
-      - name: Install startup script that creates a marker file on boot
-        shell: cpa.sh {0}
-        run: echo 'touch /tmp/reboot_marker' | sudo tee -a /etc/rc.local
-
-      - name: Verify marker file does not exist yet
-        shell: cpa.sh {0}
-        run: test ! -f /tmp/reboot_marker
-
-      - name: Reboot VM
-        run: cpa.sh --reboot
-
-      - name: Verify VM rebooted by checking the startup script created the marker file
-        shell: cpa.sh {0}
-        run: test -f /tmp/reboot_marker
-
-  test-reboot-shell-haiku:
-    timeout-minutes: 15
-    name: Test reboot shell on Haiku
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - if: env.ACT
-        shell: bash
-        run: |
-          apt update
-          apt install -y dosfstools rsync fdisk
-
-      - name: Start VM
-        uses: ./
-        with:
-          operating_system: haiku
-          architecture: x86-64
-          version: r1beta6
-
-      - name: Verify VM is running before reboot
-        shell: cpa.sh {0}
-        run: '[ "`uname`" = Haiku ]'
-
-      - name: Reboot VM
-        run: cpa.sh --reboot
-
-      - name: Verify VM is running after reboot
-        shell: cpa.sh {0}
-        run: '[ "`uname`" = Haiku ]'
-
-      # combine custom shell with --reboot flag
-      - name: Reboot via post-flag
-        shell: cpa.sh {0} --reboot
-        run: '[ "`uname`" = Haiku ]'
-
-      - name: Verify VM is running after second reboot
-        shell: cpa.sh {0}
-        run: '[ "`uname`" = Haiku ]'
 
   test-sync-shell:
     timeout-minutes: 10

@@ -21,6 +21,7 @@ import {
 import * as input from './input'
 import * as shell from './shell'
 import {Timings} from '../timings'
+import {createSparseDisk} from '../extra_disk'
 import * as utility from '../utility'
 
 import {execSync} from 'child_process'
@@ -205,9 +206,16 @@ export class Action {
       {
         ...config,
         diskImage: path.join(resourcesDirectory, this.targetDiskName),
-        resourcesDiskImage: this.resourceDisk.diskPath
+        resourcesDiskImage: this.resourceDisk.diskPath,
+        extraDiskImage: this.extraDiskImage
       }
     )
+  }
+
+  get extraDiskImage(): string | undefined {
+    return this.input.extraDiskSize === 0
+      ? undefined
+      : path.join(this.tempPath, 'extra-disk.raw')
   }
 
   async unarchive(type: string, archivePath: string): Promise<string> {
@@ -391,6 +399,14 @@ class InitialRunPreparer implements RunPreparer {
       this.action['targetDiskName'],
       resourcesDirectory
     )
+
+    const extraDisk = this.action.extraDiskImage
+    if (extraDisk !== undefined) {
+      core.info(
+        `Creating sparse disk: ${this.action.input.extraDiskSize} bytes`
+      )
+      createSparseDisk(extraDisk, this.action.input.extraDiskSize)
+    }
   }
 }
 

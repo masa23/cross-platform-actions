@@ -11,6 +11,7 @@ import {
   validSyncDirections
 } from './sync_direction'
 import {createHash} from 'crypto'
+import {parseDiskSize} from '../extra_disk'
 
 export class Input {
   private readonly host: Host
@@ -27,6 +28,7 @@ export class Input {
   private syncDirection_?: SyncDirection
   private shutdownVm_?: boolean
   private variant_?: Variant
+  private extraDiskSize_?: number
 
   constructor(host: Host = defaultHost()) {
     this.host = host
@@ -96,6 +98,20 @@ export class Input {
       return (this.memory_ = this.host.defaultMemory)
 
     return (this.memory_ = memory)
+  }
+
+  get extraDiskSize(): number {
+    if (this.extraDiskSize_ !== undefined) return this.extraDiskSize_
+
+    const value = core.getInput('extra_disk_size')
+    if (value === '') return (this.extraDiskSize_ = 0)
+
+    const size = parseDiskSize(value)
+    if (this.architecture === architecture.Kind.vax) {
+      throw Error('extra_disk_size is not supported on VAX (SIMH)')
+    }
+
+    return (this.extraDiskSize_ = size)
   }
 
   get cpuCount(): number {
@@ -193,6 +209,9 @@ export class Input {
 
     const hash = createHash('sha256')
     for (const component of components) hash.update(component.toString())
+    if (this.extraDiskSize !== 0) {
+      hash.update(`:extra_disk_size=${this.extraDiskSize}`)
+    }
 
     return hash.digest('hex')
   }

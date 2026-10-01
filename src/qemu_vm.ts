@@ -55,6 +55,7 @@ export abstract class Vm extends vm.Vm {
       '-boot', 'strict=off',
       ...this.firmwareFlags,
       ...this.hardDriverFlags,
+      ...this.extraDiskFlags,
       ...this.extraFlags
     ]
   }
@@ -78,6 +79,23 @@ export abstract class Vm extends vm.Vm {
   }
 
   protected abstract get hardDriverFlags(): string[]
+
+  protected get extraDiskDevice(): string {
+    return 'scsi-hd'
+  }
+
+  private get extraDiskFlags(): string[] {
+    const disk = this.configuration.extraDiskImage
+    if (disk === undefined) return []
+
+    // QEMU escapes commas in option values by doubling them.
+    const file = disk.toString().replace(/,/g, ',,')
+    // prettier-ignore
+    return [
+      '-device', `${this.extraDiskDevice},drive=drive2`,
+      '-drive', `if=none,file=${file},id=drive2,cache=unsafe,discard=ignore,format=raw`
+    ]
+  }
 
   protected get defaultHardDriveFlags(): string[] {
     // prettier-ignore
